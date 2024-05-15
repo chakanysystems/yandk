@@ -1,0 +1,22 @@
+[package]
+name = "yandk"
+version = "0.1.0"
+authors = ["Jack Chakany <jack@chakany.systems>"]
+publish = false
+edition = "2021"
+
+[features]
+default = ["coordinator"]
+coordinator = ["dep:tokio"]
+
+[dependencies]
+tokio-tungstenite = { version = ">=0.17, <=0.21", features = ["native-tls"] }
+secp256k1 = "0.29.0"
+serde = { version = "1.0.201", features = ["derive"] }
+serde_json = "1.0.117"
+sha256 = "1.5.0"
+tokio = { version = "1.37.0", features = [
+    "full",
+], optional = true } # todo!: CHANGE THIS LATER!!!!!!!!!
+tokio-stream = "0.1.15"
+tracing = "0.1.40"
