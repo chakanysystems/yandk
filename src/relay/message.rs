@@ -6,9 +6,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::{self};
 
 /*
-    Messages that are client <- relay
-
-    Instead of writing a cancerous `impl serialize for ClientMessage`, we can use the `Serialize_tuple` macro, and have much cleaner code! wow!
+    Messages that are client <- relay.
 */
 
 #[derive(Debug, Clone)]
@@ -123,7 +121,6 @@ impl<'de> Deserialize<'de> for RelayMessage {
 
 /*
     Messages that are client -> relay.
-    This has nothing to do with `client.rs`
 */
 
 #[derive(Debug, Clone)]
