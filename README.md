@@ -9,6 +9,8 @@
 - opt-in features; compile and use what you need. more like a toolbox, less than a framework.
 - lightweight, performance conscious
 - use a minimum amount of dependencies
+- opinionated
+- works with gui apps
 
 ## why?
 
