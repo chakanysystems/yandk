@@ -6,6 +6,7 @@ pub mod error;
 pub mod relay;
 pub mod worker;
 pub use error::Error;
+pub(crate) mod websocket;
 
 pub(crate) type Result<T> = std::result::Result<T, Error>;
 

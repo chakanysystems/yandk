@@ -1,20 +1,70 @@
-// stripped down ewebsock
+use crate::Result;
+use futures_util::SinkExt;
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tokio_stream::Stream;
+use tokio_tungstenite::tungstenite::Message;
+use tracing::{error, info};
 
-#[derive(Debug, Clone)]
-pub enum WsMessage {
-    Binary(Vec<u8>),
-    Text(String),
-    Unknown(String),
-    Ping(Vec<u8>),
-    Pong(Vec<u8>),
+#[derive(Debug)]
+pub(crate) struct WsReciever {
+    pub rx: UnboundedReceiver<Message>,
 }
 
-#[derive(Debug, Clone)]
-pub enum WsEvent {
-    Opened,
-    Message(WsMessage),
-    Error(String),
-    Closed,
+impl WsReciever {
+    pub async fn recv(&mut self) -> Option<Message> {
+        return self.rx.recv().await;
+    }
 }
 
-pub struct WsSender
+#[derive(Debug)]
+pub(crate) struct WsSender {
+    wr: UnboundedSender<Message>,
+}
+
+impl WsSender {}
+
+pub async fn connect(url: String) -> Result<(WsSender, WsReciever)> {
+    let (ws_stream, _r) = tokio_tungstenite::connect_async(url).await?;
+    use futures_util::StreamExt as _;
+    let (mut write, mut read) = ws_stream.split();
+    let (reader_wr, reader_rx): (UnboundedSender<Message>, UnboundedReceiver<Message>) =
+        unbounded_channel();
+    info!("trying to connect...");
+    tokio::spawn(async move {
+        while let Some(event) = read.next().await {
+            match event {
+                Ok(message) => {
+                    //f
+                    match message {
+                        Message::Frame(_f) => error!("Recieved a frame, we do not implement this."),
+                        _ => match reader_wr.send(message) {
+                            Ok(e) => e,
+                            Err(e) => {
+                                panic!("error trying to forward message: {}", e)
+                            }
+                        },
+                    }
+                }
+                Err(e) => {
+                    panic!("error from websocket recieve {}", e);
+                }
+            }
+        }
+    });
+    let (writer_wr, mut writer_rx): (UnboundedSender<Message>, UnboundedReceiver<Message>) =
+        unbounded_channel();
+
+    tokio::spawn(async move {
+        while let Some(message) = writer_rx.recv().await {
+            match write.send(message).await {
+                Ok(s) => s,
+                Err(e) => error!("could not send message to relay {}", e),
+            };
+        }
+    });
+
+    let reciever_struct = WsReciever { rx: reader_rx };
+    let writer_struct = WsSender { wr: writer_wr };
+
+    Ok((writer_struct, reciever_struct))
+}
