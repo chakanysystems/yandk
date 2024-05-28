@@ -1,7 +1,6 @@
 use crate::Result;
 use futures_util::SinkExt;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
-use tokio_stream::Stream;
 use tokio_tungstenite::tungstenite::Message;
 use tracing::{error, info};
 
@@ -23,7 +22,7 @@ pub(crate) struct WsSender {
 
 impl WsSender {}
 
-pub async fn connect(url: String) -> Result<(WsSender, WsReciever)> {
+pub async fn connect(url: &'static str) -> Result<(WsSender, WsReciever)> {
     let (ws_stream, _r) = tokio_tungstenite::connect_async(url).await?;
     use futures_util::StreamExt as _;
     let (mut write, mut read) = ws_stream.split();

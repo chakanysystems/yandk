@@ -28,11 +28,10 @@ impl default::Default for Event {
 
 impl Event {
     pub fn sign(&mut self) {
-        // serialize self
-        let self_json = serde_json::json!(self);
+        unimplemented!()
     }
 
     pub fn hash(&mut self) {
-        //let mut self_vec = vec![0, self.pubkey];
+        unimplemented!()
     }
 }

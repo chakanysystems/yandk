@@ -5,10 +5,7 @@ use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::{self};
 
-/*
-    Messages that are client <- relay.
-*/
-
+/// Messages that are client <- relay.
 #[derive(Debug, Clone)]
 pub enum RelayMessage {
     Event {
@@ -119,10 +116,7 @@ impl<'de> Deserialize<'de> for RelayMessage {
     }
 }
 
-/*
-    Messages that are client -> relay.
-*/
-
+/// Messages that are client -> relay.
 #[derive(Debug, Clone)]
 pub enum ClientMessage {
     Event {
