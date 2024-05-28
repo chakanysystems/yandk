@@ -2,17 +2,18 @@ use crate::websocket;
 use crate::Error;
 use crate::Result;
 use std::sync::Arc;
-use tokio::sync::RwLock;
-use tracing::info;
+use tokio::sync::{Mutex, RwLock};
+use tracing::{error, info};
 
 #[cfg(feature = "relay-pool")]
 pub mod pool;
 #[cfg(feature = "relay-pool")]
 pub use pool::RelayPool;
-mod stats;
+pub mod stats;
 pub use stats::RelayStats;
+pub mod message;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RelayStatus {
     Connected,
     Connecting,
@@ -25,7 +26,7 @@ pub struct Relay {
     pub url: &'static str,
     write: Option<websocket::WsSender>,
     recieve: Option<websocket::WsReciever>,
-    pub status: Arc<RwLock<RelayStatus>>,
+    pub status: RelayStatus,
     pub stats: stats::RelayStats,
 }
 
@@ -40,31 +41,42 @@ impl Relay {
             url,
             write: None,
             recieve: None,
-            status: Arc::new(RwLock::new(RelayStatus::Disconnected)),
+            status: RelayStatus::Disconnected,
             stats: RelayStats::new(),
         })
     }
 
     pub async fn connect(&mut self) -> Result<()> {
-        let cloned_status = self.status.clone();
-        {
-            let mut status_lock = cloned_status.write().await;
-            *status_lock = RelayStatus::Connecting;
-        }
+        self.status = RelayStatus::Connecting;
         info!("Connecting to Relay {}", &self.url);
         self.stats.add_attempt();
 
-        let (mut write, mut recieve) = websocket::connect(self.url).await?;
-        while let Some(msg) = recieve.recv().await {
-            info!("recieved message from relay {}", msg);
-        }
+        let (write, recieve) = websocket::connect(self.url).await?;
+        self.recieve.replace(recieve);
+        self.write.replace(write);
 
-        {
-            let mut status_lock = cloned_status.write().await;
-            *status_lock = RelayStatus::Connected;
-        }
+        self.status = RelayStatus::Connected;
         self.stats.add_success();
         info!("Successfully connected to Relay {}", &self.url);
+        Ok(())
+    }
+
+    /// todo: implement proper error handling
+    pub async fn send(&mut self, msg: websocket::Message) -> Result<()> {
+        if self.status != RelayStatus::Connected {
+            return Err(Error::NotConnected);
+        }
+        if let Some(write) = &mut self.write {
+            match write.send(msg.clone()).await {
+                Ok(w) => w,
+                Err(_e) => {
+                    error!(
+                        "Could not send message {:?} to relay {} because we aren't connected!",
+                        msg, &self.url
+                    );
+                }
+            };
+        }
         Ok(())
     }
 }
