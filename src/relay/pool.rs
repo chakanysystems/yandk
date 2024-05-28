@@ -1,5 +1,3 @@
-use nostrdb::Filter;
-
 use super::Relay;
 use crate::Filter;
 use crate::{Error, Result};
@@ -13,6 +11,7 @@ pub struct RelayPool {
     subs: HashMap<&'static str, Vec<Filter>>,
 }
 
+#[allow(clippy::new_without_default)]
 impl RelayPool {
     pub fn new() -> Self {
         info!("Initializing RelayPool");

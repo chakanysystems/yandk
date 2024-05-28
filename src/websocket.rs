@@ -5,18 +5,19 @@ use tokio_tungstenite::tungstenite::Message;
 use tracing::{error, info};
 
 #[derive(Debug)]
-pub(crate) struct WsReciever {
+pub struct WsReciever {
     pub rx: UnboundedReceiver<Message>,
 }
 
 impl WsReciever {
     pub async fn recv(&mut self) -> Option<Message> {
+        #[allow(clippy::needless_return)]
         return self.rx.recv().await;
     }
 }
 
 #[derive(Debug)]
-pub(crate) struct WsSender {
+pub struct WsSender {
     wr: UnboundedSender<Message>,
 }
 

@@ -10,6 +10,7 @@ pub struct Coordinator {
     transaction: nostrdb::Transaction,
 }
 
+#[allow(clippy::new_without_default)]
 impl Coordinator {
     pub fn new() -> Self {
         let config = nostrdb::Config::new();

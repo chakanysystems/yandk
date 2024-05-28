@@ -1,1 +1,1 @@
-pub trait NostrBech32 {}
+

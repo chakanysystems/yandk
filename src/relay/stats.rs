@@ -10,6 +10,7 @@ pub struct RelayStats {
     pub first_connect_time: Option<Instant>,
 }
 
+#[allow(clippy::new_without_default)]
 impl RelayStats {
     pub fn new() -> Self {
         Self {

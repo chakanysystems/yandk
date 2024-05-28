@@ -12,6 +12,12 @@ pub struct Filter {
     pub kinds: Option<Vec<u64>>,
 }
 
+impl Default for Filter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Filter {
     pub fn new() -> Self {
         Self {

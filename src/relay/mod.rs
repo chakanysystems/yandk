@@ -2,8 +2,8 @@ use crate::websocket;
 use crate::Error;
 use crate::Result;
 use std::sync::Arc;
-use tokio::sync::{mpsc, Mutex, RwLock};
-use tracing::{debug, error, info, warn};
+use tokio::sync::RwLock;
+use tracing::info;
 
 #[cfg(feature = "relay-pool")]
 pub mod pool;
@@ -54,7 +54,7 @@ impl Relay {
         info!("Connecting to Relay {}", &self.url);
         self.stats.add_attempt();
 
-        let (mut write, mut recieve) = websocket::connect(&self.url).await?;
+        let (mut write, mut recieve) = websocket::connect(self.url).await?;
         while let Some(msg) = recieve.recv().await {
             info!("recieved message from relay {}", msg);
         }
