@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::Pubkey;
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Filter {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ids: Option<Vec<String>>,

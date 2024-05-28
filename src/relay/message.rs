@@ -1,5 +1,4 @@
-use crate::event::NostrEvent;
-use nostr::{Event, Filter};
+use crate::{Event, Filter};
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
