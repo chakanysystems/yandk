@@ -1,8 +1,10 @@
+use crate::websocket::Message;
 use crate::{Event, Filter};
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::{self};
+use tracing::error;
 
 /// Messages that are client <- relay.
 #[derive(Debug, Clone)]
@@ -26,6 +28,25 @@ pub enum RelayMessage {
     Notice {
         message: String,
     },
+}
+
+impl From<Message> for RelayMessage {
+    fn from(value: Message) -> Self {
+        match value {
+            Message::Text(text) => {
+                let parsed: RelayMessage = match serde_json::from_str(&text) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        panic!("could not parse message: {}", e);
+                    }
+                };
+                return parsed;
+            }
+            _ => {
+                panic!("Cannot parse anything but text into a RelayMessage");
+            }
+        }
+    }
 }
 
 impl<'de> Deserialize<'de> for RelayMessage {
@@ -128,6 +149,15 @@ pub enum ClientMessage {
     Close {
         subscription_id: String,
     },
+}
+
+impl From<super::Subscription> for ClientMessage {
+    fn from(value: super::Subscription) -> Self {
+        Self::Req {
+            subscription_id: value.id,
+            filters: value.filters,
+        }
+    }
 }
 
 impl Serialize for ClientMessage {

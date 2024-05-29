@@ -1,4 +1,5 @@
 use core::fmt;
+use tokio::sync::mpsc::error::TryRecvError;
 use tokio_tungstenite::tungstenite;
 
 #[derive(Debug)]
@@ -10,6 +11,7 @@ pub enum Error {
     AlreadyConnected,
     HexError(hex::FromHexError),
     TryFromSliceError(std::array::TryFromSliceError),
+    TryRecvError(TryRecvError),
 }
 
 impl fmt::Display for Error {
@@ -22,6 +24,7 @@ impl fmt::Display for Error {
             Error::DbError(ref e) => e.fmt(f),
             Error::HexError(ref e) => e.fmt(f),
             Error::TryFromSliceError(ref e) => e.fmt(f),
+            Error::TryRecvError(ref e) => e.fmt(f),
         }
     }
 }
@@ -36,6 +39,7 @@ impl std::error::Error for Error {
             Error::AlreadyConnected => None,
             Error::HexError(ref e) => Some(e),
             Error::TryFromSliceError(ref e) => Some(e),
+            Error::TryRecvError(ref e) => Some(e),
         }
     }
 }
@@ -61,5 +65,11 @@ impl From<hex::FromHexError> for Error {
 impl From<std::array::TryFromSliceError> for Error {
     fn from(value: std::array::TryFromSliceError) -> Self {
         Error::TryFromSliceError(value)
+    }
+}
+
+impl From<TryRecvError> for Error {
+    fn from(value: TryRecvError) -> Self {
+        Error::TryRecvError(value)
     }
 }

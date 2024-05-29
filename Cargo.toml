@@ -7,7 +7,7 @@ edition = "2021"
 
 [features]
 default = ["coordinator"]
-relay = ["dep:tokio", "websockets"]
+relay = ["dep:tokio", "dep:rand", "websockets"]
 relay-pool = ["relay"]
 websockets = [
     "dep:tokio",
@@ -35,3 +35,4 @@ futures-util = { version = "0.3.30", optional = true }
 nostrdb = { git = "https://github.com/damus-io/nostrdb-rs", rev = "99d8296fcba5957245ed883e2f3b1c0d1cb16397", optional = true }
 bech32 = "0.11.0"
 hex = "0.4.3"
+rand = { version = "0.8.5", optional = true }

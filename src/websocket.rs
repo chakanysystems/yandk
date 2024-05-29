@@ -1,6 +1,8 @@
 use crate::Result;
 use futures_util::SinkExt;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{
+    error::TryRecvError, unbounded_channel, UnboundedReceiver, UnboundedSender,
+};
 pub use tokio_tungstenite::tungstenite::Message;
 use tracing::{error, info};
 
@@ -10,9 +12,15 @@ pub struct WsReciever {
 }
 
 impl WsReciever {
-    pub async fn recv(&mut self) -> Option<Message> {
-        #[allow(clippy::needless_return)]
-        return self.rx.recv().await;
+    pub fn recv(&mut self) -> Result<Message> {
+        let recv = match self.rx.try_recv() {
+            Ok(e) => e,
+            Err(e) => match e {
+                TryRecvError::Disconnected => return Err(e.into()),
+                TryRecvError::Empty => {}
+            },
+        };
+        Ok(recv)
     }
 }
 
@@ -22,7 +30,7 @@ pub struct WsSender {
 }
 
 impl WsSender {
-    pub async fn send(
+    pub fn send(
         &mut self,
         msg: Message,
     ) -> std::result::Result<(), tokio::sync::mpsc::error::SendError<Message>> {
@@ -30,7 +38,7 @@ impl WsSender {
     }
 }
 
-pub async fn connect(url: &'static str) -> Result<(WsSender, WsReciever)> {
+pub async fn connect(url: String) -> Result<(WsSender, WsReciever)> {
     let (ws_stream, _r) = tokio_tungstenite::connect_async(url).await?;
     use futures_util::StreamExt as _;
     let (mut write, mut read) = ws_stream.split();

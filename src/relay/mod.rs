@@ -12,6 +12,10 @@ pub use pool::RelayPool;
 pub mod stats;
 pub use stats::RelayStats;
 pub mod message;
+pub mod subscription;
+pub use subscription::Subscription;
+
+use self::message::RelayMessage;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum RelayStatus {
@@ -23,7 +27,7 @@ pub enum RelayStatus {
 /// a relay
 #[derive(Debug)]
 pub struct Relay {
-    pub url: &'static str,
+    pub url: String,
     write: Option<websocket::WsSender>,
     recieve: Option<websocket::WsReciever>,
     pub status: RelayStatus,
@@ -31,7 +35,7 @@ pub struct Relay {
 }
 
 impl Relay {
-    pub fn new(url: &'static str) -> Result<Self> {
+    pub fn new(url: String) -> Result<Self> {
         info!("Initializing Relay {}", url);
         if url.starts_with("ws://") {
             // this is probably bad.
@@ -48,10 +52,10 @@ impl Relay {
 
     pub async fn connect(&mut self) -> Result<()> {
         self.status = RelayStatus::Connecting;
-        info!("Connecting to Relay {}", &self.url);
+        info!("Connecting to Relay {}", self.url);
         self.stats.add_attempt();
 
-        let (write, recieve) = websocket::connect(self.url).await?;
+        let (write, recieve) = websocket::connect(self.url.clone()).await?;
         self.recieve.replace(recieve);
         self.write.replace(write);
 
@@ -61,20 +65,26 @@ impl Relay {
         Ok(())
     }
 
+    pub fn recv(&mut self) -> Result<Option<websocket::Message>> {
+        if let Some(recv) = &mut self.recieve {
+            while let Ok(msg) = recv.recv() {
+                return Ok(Some(msg));
+            }
+        } else {
+            return Err(Error::NotConnected);
+        }
+        Ok(None)
+    }
+
     /// todo: implement proper error handling
-    pub async fn send(&mut self, msg: websocket::Message) -> Result<()> {
+    pub fn send(&mut self, msg: websocket::Message) -> Result<()> {
         if self.status != RelayStatus::Connected {
             return Err(Error::NotConnected);
         }
         if let Some(write) = &mut self.write {
-            match write.send(msg.clone()).await {
+            match write.send(msg.clone()) {
                 Ok(w) => w,
-                Err(_e) => {
-                    error!(
-                        "Could not send message {:?} to relay {} because we aren't connected!",
-                        msg, &self.url
-                    );
-                }
+                Err(e) => error!("unable to send: {}", e),
             };
         }
         Ok(())
