@@ -9,12 +9,7 @@ edition = "2021"
 default = ["coordinator"]
 relay = ["dep:tokio", "dep:rand", "websockets"]
 relay-pool = ["relay"]
-websockets = [
-    "dep:tokio",
-    "dep:tokio-tungstenite",
-    "dep:tokio-stream",
-    "dep:futures-util",
-]
+websockets = ["dep:ewebsock"]
 coordinator = ["dep:tokio", "relay-pool", "nostrdb"]
 nostrdb = ["dep:nostrdb"]
 
@@ -36,3 +31,4 @@ nostrdb = { git = "https://github.com/damus-io/nostrdb-rs", rev = "99d8296fcba59
 bech32 = "0.11.0"
 hex = "0.4.3"
 rand = { version = "0.8.5", optional = true }
+ewebsock = { version = "0.6.0", features = ["tls"], optional = true }

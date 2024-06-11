@@ -2,17 +2,15 @@ use super::message::ClientMessage;
 use super::message::RelayMessage;
 use super::Relay;
 use super::Subscription;
-use crate::websocket;
 use crate::Event;
 use crate::Filter;
 use crate::{Error, Result};
 use std::collections::HashMap;
-use tracing::{info, warn};
+use tracing::{error, info, warn};
 
 /// manages a group of relays.
-#[derive(Debug)]
 pub struct RelayPool {
-    relays: HashMap<String, Relay>, // maybe we could make this &str
+    relays: HashMap<String, Relay>,
     subs: Vec<Subscription>,
 }
 
@@ -24,16 +22,6 @@ impl RelayPool {
             relays: HashMap::new(),
             subs: Vec::new(),
         }
-    }
-
-    pub async fn add_relay(&mut self, url: String) -> Result<()> {
-        if self.relays.contains_key(&url) {
-            warn!("Already connected to relay {}, not connecting", &url);
-            return Err(Error::AlreadyConnected);
-        }
-        let mut relay = Relay::new(url)?;
-        relay.connect().await?;
-        Ok(())
     }
 
     /// TODO: group subscriptions together
@@ -65,7 +53,7 @@ impl RelayPool {
         let id = sub.id.clone();
         let client_message: ClientMessage = cloned_sub.into();
         let serialized_msg = serde_json::to_string(&client_message).unwrap();
-        let message_to_send = websocket::Message::Text(serialized_msg);
+        let message_to_send = ewebsock::WsMessage::Text(serialized_msg);
         let relays = &mut self.relays;
         for (url, relay) in &mut relays.into_iter() {
             info!("Adding subscription {} to {}", &id, url);
@@ -74,14 +62,49 @@ impl RelayPool {
         Ok(())
     }
 
-    pub fn recv(&mut self) -> Result<Option<String>> {
+    pub fn add_relay(&mut self, url: String) -> Result<()> {
+        let cloned_url = url.clone();
+        if self.relays.contains_key(&cloned_url) {
+            error!(
+                "already connected to {}, not opening another connection",
+                cloned_url
+            );
+            return Err(Error::AlreadyConnected);
+        }
+        let mut new_relay = crate::relay::Relay::new(cloned_url)?;
+        new_relay.connect()?;
+        Ok(())
+    }
+
+    pub fn add_relay_with_wakeup(
+        &mut self,
+        url: String,
+        wake_up: impl Fn() + Send + Sync + 'static,
+    ) -> Result<()> {
+        let cloned_url = url.clone();
+        if self.relays.contains_key(&cloned_url) {
+            error!(
+                "already connected to {}, not opening another connection",
+                cloned_url
+            );
+            return Err(Error::AlreadyConnected);
+        }
+        let mut new_relay = crate::relay::Relay::new(cloned_url)?;
+        new_relay.connect_with_wakeup(wake_up)?;
+        Ok(())
+    }
+
+    pub fn try_recv(&mut self) -> Result<Option<String>> {
         for relay in &mut self.relays {
-            while let Some(message) = relay.1.recv()? {
-                match message {
-                    websocket::Message::Text(t) => {
-                        return Ok(Some(t));
+            if let Ok(result) = relay.1.try_recv() {
+                if let Some(event) = result {
+                    match event {
+                        ewebsock::WsEvent::Message(msg) => match msg {
+                            ewebsock::WsMessage::Text(txt) => return Ok(Some(txt)),
+                            _ => {} //  TODO: FIX
+                        },
+                        _ => {}
                     }
-                    _ => {}
                 }
             }
         }

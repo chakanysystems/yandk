@@ -1,6 +1,7 @@
-use crate::websocket;
 use crate::Error;
 use crate::Result;
+use ewebsock::Options;
+use ewebsock::{WsReceiver, WsSender};
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 use tracing::{error, info};
@@ -25,11 +26,10 @@ pub enum RelayStatus {
 }
 
 /// a relay
-#[derive(Debug)]
 pub struct Relay {
     pub url: String,
-    write: Option<websocket::WsSender>,
-    recieve: Option<websocket::WsReciever>,
+    write: Option<WsSender>,
+    recieve: Option<WsReceiver>,
     pub status: RelayStatus,
     pub stats: stats::RelayStats,
 }
@@ -50,12 +50,12 @@ impl Relay {
         })
     }
 
-    pub async fn connect(&mut self) -> Result<()> {
+    pub fn connect(&mut self) -> Result<()> {
         self.status = RelayStatus::Connecting;
         info!("Connecting to Relay {}", self.url);
         self.stats.add_attempt();
 
-        let (write, recieve) = websocket::connect(self.url.clone()).await?;
+        let (write, recieve) = ewebsock::connect(self.url.clone(), Options::default())?;
         self.recieve.replace(recieve);
         self.write.replace(write);
 
@@ -65,27 +65,41 @@ impl Relay {
         Ok(())
     }
 
-    pub fn recv(&mut self) -> Result<Option<websocket::Message>> {
+    pub fn connect_with_wakeup(
+        &mut self,
+        wake_up: impl Fn() + Send + Sync + 'static,
+    ) -> Result<()> {
+        self.status = RelayStatus::Connecting;
+        info!("Connecting to Relay {}", self.url);
+        self.stats.add_attempt();
+
+        let (write, recieve) =
+            ewebsock::connect_with_wakeup(self.url.clone(), Options::default(), wake_up)?;
+        self.recieve.replace(recieve);
+        self.write.replace(write);
+
+        self.status = RelayStatus::Connected;
+        self.stats.add_success();
+        info!("Successfully connected to Relay {}", &self.url);
+        Ok(())
+    }
+
+    pub fn try_recv(&mut self) -> Result<Option<ewebsock::WsEvent>> {
         if let Some(recv) = &mut self.recieve {
-            while let Ok(msg) = recv.recv() {
-                return Ok(Some(msg));
-            }
-        } else {
-            return Err(Error::NotConnected);
+            return Ok(recv.try_recv());
         }
-        Ok(None)
+
+        // Since there was no reciever, there's no possible way we are connected!
+        Err(Error::NotConnected)
     }
 
     /// todo: implement proper error handling
-    pub fn send(&mut self, msg: websocket::Message) -> Result<()> {
+    pub fn send(&mut self, msg: ewebsock::WsMessage) -> Result<()> {
         if self.status != RelayStatus::Connected {
             return Err(Error::NotConnected);
         }
         if let Some(write) = &mut self.write {
-            match write.send(msg.clone()) {
-                Ok(w) => w,
-                Err(e) => error!("unable to send: {}", e),
-            };
+            write.send(msg.clone());
         }
         Ok(())
     }

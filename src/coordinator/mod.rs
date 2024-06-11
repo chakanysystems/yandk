@@ -5,7 +5,7 @@ use nostrdb::{Ndb, ProfileRecord};
 use tracing::error;
 
 /// controls events, relays, you name it.
-#[derive(Debug)]
+/// meant for gui apps
 pub struct Coordinator {
     pool: RelayPool,
     ndb: Ndb,
@@ -33,10 +33,20 @@ impl Coordinator {
         }
     }
 
+    pub fn add_relay(
+        &mut self,
+        url: String,
+        wake_up: impl Fn() + Send + Sync + 'static,
+    ) -> Result<()> {
+        self.pool.add_relay_with_wakeup(url, wake_up)?;
+
+        Ok(())
+    }
+
     /// recieve events and deposit them into ndb
     /// should be called whenever you need it.
-    pub fn recv(&mut self) {
-        while let Ok(event) = self.pool.recv() {
+    pub fn try_recv(&mut self) {
+        if let Ok(event) = self.pool.try_recv() {
             if let Some(event) = event {
                 if let Err(_e) = self.ndb.process_event(event.as_str()) {
                     error!("could not process event")

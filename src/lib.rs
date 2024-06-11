@@ -15,8 +15,6 @@ pub mod filter;
 pub mod pubkey;
 pub use filter::Filter;
 pub use pubkey::Pubkey;
-#[cfg(feature = "websockets")]
-pub mod websocket;
 
 pub type Result<T> = std::result::Result<T, Error>;
 

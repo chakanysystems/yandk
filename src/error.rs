@@ -1,11 +1,9 @@
-use core::fmt;
-use tokio::sync::mpsc::error::TryRecvError;
-use tokio_tungstenite::tungstenite;
+use std::sync::mpsc::TryRecvError;
 
 #[derive(Debug)]
 pub enum Error {
     InsecureConnection,
-    WsError(tungstenite::Error),
+    WsError(ewebsock::Error),
     NotConnected,
     DbError(nostrdb::Error),
     AlreadyConnected,
@@ -14,8 +12,8 @@ pub enum Error {
     TryRecvError(TryRecvError),
 }
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             Error::InsecureConnection => write!(f, "connection is not wss, will not connect!"),
             Error::NotConnected => write!(f, "not connected, cannot send message."),
@@ -33,7 +31,7 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match *self {
             Error::InsecureConnection => None,
-            Error::WsError(ref e) => Some(e),
+            Error::WsError(ref _e) => None,
             Error::NotConnected => None,
             Error::DbError(ref e) => Some(e),
             Error::AlreadyConnected => None,
@@ -44,8 +42,8 @@ impl std::error::Error for Error {
     }
 }
 
-impl From<tungstenite::Error> for Error {
-    fn from(value: tungstenite::Error) -> Error {
+impl From<ewebsock::Error> for Error {
+    fn from(value: ewebsock::Error) -> Error {
         Error::WsError(value)
     }
 }

@@ -1,5 +1,5 @@
-use crate::websocket::Message;
 use crate::{Event, Filter};
+use ewebsock::WsMessage;
 use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -30,10 +30,10 @@ pub enum RelayMessage {
     },
 }
 
-impl From<Message> for RelayMessage {
-    fn from(value: Message) -> Self {
+impl From<WsMessage> for RelayMessage {
+    fn from(value: WsMessage) -> Self {
         match value {
-            Message::Text(text) => {
+            WsMessage::Text(text) => {
                 let parsed: RelayMessage = match serde_json::from_str(&text) {
                     Ok(p) => p,
                     Err(e) => {
