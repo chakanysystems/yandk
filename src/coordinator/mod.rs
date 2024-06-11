@@ -1,6 +1,6 @@
+use crate::relay::pool::RelayPool;
 use crate::relay::Subscription;
 use crate::Result;
-use crate::{relay::pool::RelayPool, Event};
 use nostrdb::{Ndb, ProfileRecord};
 use tracing::error;
 

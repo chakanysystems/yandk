@@ -2,9 +2,7 @@ use crate::Error;
 use crate::Result;
 use ewebsock::Options;
 use ewebsock::{WsReceiver, WsSender};
-use std::sync::Arc;
-use tokio::sync::{Mutex, RwLock};
-use tracing::{error, info};
+use tracing::info;
 
 #[cfg(feature = "relay-pool")]
 pub mod pool;
@@ -15,8 +13,6 @@ pub use stats::RelayStats;
 pub mod message;
 pub mod subscription;
 pub use subscription::Subscription;
-
-use self::message::RelayMessage;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum RelayStatus {

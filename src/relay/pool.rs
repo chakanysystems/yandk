@@ -1,9 +1,6 @@
 use super::message::ClientMessage;
-use super::message::RelayMessage;
 use super::Relay;
 use super::Subscription;
-use crate::Event;
-use crate::Filter;
 use crate::{Error, Result};
 use std::collections::HashMap;
 use tracing::{error, info, warn};

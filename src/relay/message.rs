@@ -4,7 +4,6 @@ use serde::de::{SeqAccess, Visitor};
 use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::{self};
-use tracing::error;
 
 /// Messages that are client <- relay.
 #[derive(Debug, Clone)]
