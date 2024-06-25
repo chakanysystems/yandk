@@ -3,15 +3,12 @@ use super::Relay;
 use super::Subscription;
 use crate::{Error, Result};
 use std::collections::HashMap;
-use std::time::Instant;
 use tracing::{error, info, warn};
 
 /// manages a group of relays.
 pub struct RelayPool {
     relays: HashMap<String, Relay>,
     subs: Vec<Subscription>,
-    last_ping: Instant,
-    interval: i8,
 }
 
 #[allow(clippy::new_without_default)]
